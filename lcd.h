@@ -20,5 +20,6 @@ void Lcd1602_Delay1ms(uint c);
 void LcdWriteCom(uchar com);
 void LcdWriteData(uchar dat);
 void LcdInit();
+//void LcdDisplay(uchar *data,uchar len); 
 
 #endif
