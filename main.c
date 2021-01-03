@@ -21,7 +21,7 @@ u8 times = 1;  //转换成float的长度标记
 u8 Decimalpoint = 0 ;//有无小数点
 u8 State = 0; //最开始在初始状态
 u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
-u8 mlti_div_flag = 0 ; //1->'*' , 0->'/'
+u8 multi_div_flag = 0 ; //1->'*' , 0->'/'
 
 void changeState(){
 }
@@ -132,7 +132,7 @@ u8 PopOP(){
 	Opcodepoint--;
 	return op;
 }
-void PushNum(){
+void PushNum(float temp){
 	Operandpoint++;
 	Operand[Operandpoint] = temp;
 	//重置数字计数
@@ -216,24 +216,25 @@ void function_S0(){
 	else if(num == 10){  // + -
 		b = 0 ;
 		add_sub_flag = 1;
-		state = 1;
+		State = 1;
 	}
 	else if(num == 11){
 		b = 0 ;
 		add_sub_flag = 0 ;
-		state = 1;
+		State = 1;
 	}
 	else if(num ==12 ){
 		c = 0 ;
-		state = 5;
+		State = 5;
 		multi_div_flag = 1;
 	}// * /
 	else if(num == 13){
 		c = 0 ;
-		state =5 ;
-		multi_div_flat = 0;
+		State =5 ;
+		multi_div_flag = 0;
 	}
 	else if(num == 17){
+		
 	}// =
 	LcdWriteData(Outputchar[num]);
 }
