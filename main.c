@@ -9,18 +9,30 @@ typedef unsigned char u8;
 char Outputchar[18]={48,49,50,51,52,53,54,55,56,57,43,45,42,47,40,41,46,61};
 #define MAXLEN 15
 char Opcodepoint = -1;  // +1 push 指向当前位置
-char operandpoint = -1 ;
+char Operandpoint = -1 ;
+char Statepoint = -1;
 float Operand[MAXLEN];  //Operadn[MAXLEN-1]为整数部分临时保存位置
-#define temp Operand[MAXLEN-1]
+float a = 0.0 , b = 0.0, c =0.0;
+
 u8 Opcode[MAXLEN];
+u8 StateStack[MAXLEN];
+
 u8 times = 1;  //转换成float的长度标记
 u8 Decimalpoint = 0 ;//有无小数点
 u8 State = 0; //最开始在初始状态
+u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
+u8 mlti_div_flag = 0 ; //1->'*' , 0->'/'
+
 void changeState(){
 }
 void InitOpcodeStack(){
-	Opcodepoint++;
-	Opcode[Opcodepoint] = 6;
+	Opcodepoint = -1;
+}
+void InitOperandStack(){
+	Operandpoint = -1;
+}
+void InitStateStack(){
+	Statepoint = -1;
 }
 /*
 	优先级表
@@ -108,34 +120,7 @@ u8 KeyDown(void)
 void Error(){
 	
 }
-void handleNum(u8 num){
-	u8 i ;
-	float afterpoint = 0;
-	afterpoint += num;
-	if(Decimalpoint!=1){    //没有小数点
-			temp = temp *10 + num;
-	}
-	else{
-			for(i=0;i<times;i++){
-					afterpoint = afterpoint*0.1;
-			}
-			temp = temp+afterpoint;
-	}
-}
-char Precede(u8 op1,u8 op2){
-	if(OpPri[op1][op2]==-1){
-		return '<';
-	}
-	else if(OpPri[op1][op2]==0){
-		return '=';
-	}
-	else if(OpPri[op1][op2]==1){
-		return '>';
-	}
-	else {
-		return '?';
-	}
-}
+
 
 void PushOP(u8 op){
 	Opcodepoint++;
@@ -148,60 +133,30 @@ u8 PopOP(){
 	return op;
 }
 void PushNum(){
-	operandpoint++;
-	Operand[operandpoint] = temp;
+	Operandpoint++;
+	Operand[Operandpoint] = temp;
 	//重置数字计数
 	temp = 0;
 	Decimalpoint= 0;   //重新开始小数
 }
 
 void Pushans(float ans){
-	operandpoint++;
-	Operand[operandpoint] = ans;
+	Operandpoint++;
+	Operand[Operandpoint] = ans;
 }
 float PopNum(){
-	float num = Operand[operandpoint];
-	operandpoint--;
+	float num = Operand[Operandpoint];
+	Operandpoint--;
 	return num;
 }
-float operate(float a, float b,u8 theta){
-	if(theta==0){
-		return a+b;
-	}
-	else if(theta ==1){
-		return a-b;
-	}
-	else if(theta ==2){
-		return a*b;
-	}
-	else 
-		return a/b;
-	
-}
-void handleOp(u8 op){
-	char P = Precede(Opcode[Opcodepoint],op);
-	u8 theta;
-	float a, b;
-	PushNum();          //todo: 如果最开始是符号有问题
-	switch(P){
-		case '<':
-			PushOP(op);
-			break;
-		case '=':
-			PopOP();
-			break;
-		case '>':
-			theta = PopOP();
-			b = PopNum();
-		  a = PopNum();
-			Pushans(operate(a,b,theta));
-			break;
-		case '?':
-			break;
-	}
-}
 
+
+/*
+从独立按键输入字符
+*/
 u8 keypros(){
+	
+	
 	GPIO_BUTTON = 0xff;
 	delay(1000);
 	if(K1 == 0){
@@ -251,30 +206,83 @@ u8 Getch(){
 		}
 	}
 }
+
+
+void function_S0(){
+	u8 num = Getch();
+	if(isNum(num)==1){
+		a = a*10 +num;
+	}
+	else if(num == 10){  // + -
+		b = 0 ;
+		add_sub_flag = 1;
+		state = 1;
+	}
+	else if(num == 11){
+		b = 0 ;
+		add_sub_flag = 0 ;
+		state = 1;
+	}
+	else if(num ==12 ){
+		c = 0 ;
+		state = 5;
+		multi_div_flag = 1;
+	}// * /
+	else if(num == 13){
+		c = 0 ;
+		state =5 ;
+		multi_div_flat = 0;
+	}
+	else if(num == 17){
+	}// =
+	LcdWriteData(Outputchar[num]);
+}
+
+void function_S1(){
+}
+
+void function_S2(){
+}
+
+void function_S3(){
+}
+
+void function_S4(){
+}
+
+void function_S5(){
+}
+
+void function_S6(){
+}
 void main(){
-	u8 num ;
 	LcdInit();
-	//LcdWriteData(1+'0');
 	InitOpcodeStack();
+	InitOperandStack();
 	while(1){
 		switch(State){
 			case 0:
+				function_S0();
 				break;
 			case 1:
+				function_S1();
 				break;
 			case 2:
+				function_S2();
 				break;
 			case 3:
+				function_S3();
 				break;
 			case 4:
+				function_S4();
 				break;
 			case 5:
+				function_S5();
 				break;
 			case 6:
+				function_S6();
 				break;
 		}
-		num = Getch();
-		LcdWriteData(Outputchar[num]);
 	}
 	
 }

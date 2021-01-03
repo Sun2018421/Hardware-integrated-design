@@ -24,10 +24,12 @@ Project File Date:  12/30/2020
 <h2>Output:</h2>
 Build target 'Target 1'
 compiling main.c...
-main.c(253): warning C291: not every exit path returns a value
+main.c(265): warning C291: not every exit path returns a value
 linking...
 *** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
     SEGMENT: ?PR?CHANGESTATE?MAIN
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?INITSTATESTACK?MAIN
 *** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
     SEGMENT: ?PR?_ISNUM?MAIN
 *** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
@@ -36,9 +38,9 @@ linking...
     SEGMENT: ?PR?_HANDLENUM?MAIN
 *** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
     SEGMENT: ?PR?_HANDLEOP?MAIN
-Program Size: data=9.0 xdata=171 code=2411
+Program Size: data=9.0 xdata=198 code=2471
 creating hex file from ".\Objects\Final"...
-".\Objects\Final" - 0 Error(s), 6 Warning(s).
+".\Objects\Final" - 0 Error(s), 7 Warning(s).
 Build Time Elapsed:  00:00:00
 </pre>
 </body>
