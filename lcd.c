@@ -39,9 +39,6 @@ void LcdWriteData(uchar dat){
 定位光标到第二行
 */
 void LcdInit(){   
-//	uchar Display[] = " Created by Xfs";
-//	uchar size = sizeof(Display);
-//	uchar i ;
 
 	LcdWriteCom(0x38);  //开显示  0011 1000
 	LcdWriteCom(0x0c);  //开显示不显示光标 0000 1100
@@ -49,11 +46,6 @@ void LcdInit(){
 	LcdWriteCom(0x01);  //清屏 0000 0001
 	LcdWriteCom(0x80);  //设置数据指针起点 1000 0000
 	
-//	for(i=0;i<15;i++){
-//		LcdWriteData(Display[i]);
-//	}
-//	
-//	LcdWriteCom(0xc0);	//定位到第二行
 }
 //void LcdDisplay(uchar *dat,uchar len){
 //	uchar i;

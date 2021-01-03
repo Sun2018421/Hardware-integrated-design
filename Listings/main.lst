@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              12/30/2020 23:09:20 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 10:28:06 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -15,263 +15,294 @@ line level    source
    5          typedef unsigned int u16;   //对数据类型进行声明定义
    6          typedef unsigned char u8;
    7          
-   8          #define MAXLEN 15
-   9          char Opcodepoint = -1;  // +1 push 指向当前位置
-  10          char operandpoint = -1 ;
-  11          float Operand[MAXLEN];  //Operadn[MAXLEN-1]为整数部分临时保存位置
-  12          #define temp Operand[MAXLEN-1]
-  13          u8 Opcode[MAXLEN];
-  14          u8 times = 1;  //转换成float的长度标记
-  15          u8 Decimalpoint = 0 ;//有无小数点
-  16          
-  17          void InitOpcodeStack(){
-  18   1        Opcodepoint++;
-  19   1        Opcode[Opcodepoint] = 6;
+   8          
+   9          char Outputchar[18]={48,49,50,51,52,53,54,55,56,57,43,45,42,47,40,41,46,61};
+  10          #define MAXLEN 15
+  11          char Opcodepoint = -1;  // +1 push 指向当前位置
+  12          char operandpoint = -1 ;
+  13          float Operand[MAXLEN];  //Operadn[MAXLEN-1]为整数部分临时保存位置
+  14          #define temp Operand[MAXLEN-1]
+  15          u8 Opcode[MAXLEN];
+  16          u8 times = 1;  //转换成float的长度标记
+  17          u8 Decimalpoint = 0 ;//有无小数点
+  18          u8 State = 0; //最开始在初始状态
+  19          void changeState(){
   20   1      }
-  21          /*
-  22            优先级表
-  23            -1 = < , 0 = = ,1 = >,2 = error
-  24            + 0,- 1* 2,/ 3,( 4,) 5,# 6
-  25            = -> #
-  26            */
-  27          char OpPri[7][7]={  
-  28            {1,1,-1,-1,-1,1,1},
-  29            {1,1,-1,-1,-1,1,1},
-  30            {1,1,1,1,-1,1,1},
-  31            {1,1,1,1,-1,1,1},
-  32            {-1,-1,-1,-1,-1,0,2},
-  33            {1,1,1,1,2,1,1},
-  34            {-1,-1,-1,-1,-1,2,0}
-  35          };
-  36          
-  37          void delay(u16 i){  
-  38   1        while(i--);
-  39   1      }
-  40          /*
-  41            P17->H1
-  42            P16->H2
-  43            P15->H3
-  44            P14->H4
-  45          
-  46            P13->L1
-  47            P12->L2
-  48            P11->L3
-  49            P10->L4
-  50          */
-  51          #define GPIO_KEY P1 //  0000 0000
-  52                                
-  53          u8 isNum(u8 num){
-  54   1        if((num>=0)&&(num<=9))
-C51 COMPILER V9.60.0.0   MAIN                                                              12/30/2020 23:09:20 PAGE 2   
+  21          void InitOpcodeStack(){
+  22   1        Opcodepoint++;
+  23   1        Opcode[Opcodepoint] = 6;
+  24   1      }
+  25          /*
+  26            优先级表
+  27            -1 = < , 0 = = ,1 = >,2 = error
+  28            + 0,- 1* 2,/ 3,( 4,) 5,# 6
+  29            = -> #
+  30            */
+  31          char OpPri[7][7]={  
+  32            {1,1,-1,-1,-1,1,1},
+  33            {1,1,-1,-1,-1,1,1},
+  34            {1,1,1,1,-1,1,1},
+  35            {1,1,1,1,-1,1,1},
+  36            {-1,-1,-1,-1,-1,0,2},
+  37            {1,1,1,1,2,1,1},
+  38            {-1,-1,-1,-1,-1,2,0}
+  39          };
+  40          
+  41          void delay(u16 i){  
+  42   1        while(i--);
+  43   1      }
+  44          /*
+  45            P17->H1
+  46            P16->H2
+  47            P15->H3
+  48            P14->H4
+  49          
+  50            P13->L1
+  51            P12->L2
+  52            P11->L3
+  53            P10->L4
+  54          */
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 10:28:06 PAGE 2   
 
-  55   1          return 1;
-  56   1        return 0;
-  57   1      }
-  58          
-  59          u8 KeyDown(void)
-  60          {
-  61   1        u8 KeyValue= 127;
-  62   1        char a=0;
-  63   1        GPIO_KEY=0x0f;
-  64   1        if(GPIO_KEY!=0x0f)//读取按键是否按下
-  65   1        {
-  66   2          delay(1000);//延时10ms进行消抖
-  67   2          if(GPIO_KEY!=0x0f)//再次检测键盘是否按下
-  68   2          { 
-  69   3            //测试列
-  70   3            GPIO_KEY=0X0F;
-  71   3            switch(GPIO_KEY)
-  72   3            {
-  73   4              case(0X07): KeyValue=0;break;
-  74   4              case(0X0b): KeyValue=1;break;
-  75   4              case(0X0d): KeyValue=2;break;
-  76   4              case(0X0e): KeyValue=3;break;
-  77   4            }
-  78   3            //测试行
-  79   3            GPIO_KEY=0XF0;
-  80   3            switch(GPIO_KEY)
-  81   3            {
-  82   4              case(0X70): KeyValue=KeyValue;break;
-  83   4              case(0Xb0): KeyValue=KeyValue+4;break;
-  84   4              case(0Xd0): KeyValue=KeyValue+8;break;
-  85   4              case(0Xe0): KeyValue=KeyValue+12;break;
-  86   4            }
-  87   3            
-  88   3          }
-  89   2        }
-  90   1        //delay(1000);
-  91   1        while((a<50)&&(GPIO_KEY!=0xf0))  //检测按键松手检测
-  92   1        {
-  93   2          delay(140);
-  94   2          a++;
-  95   2        }
-  96   1        return KeyValue;
-  97   1      }
-  98          
-  99          
- 100          void Error(){
- 101   1        
- 102   1      }
- 103          void handleNum(u8 num){
- 104   1        u8 i ;
- 105   1        float afterpoint = 0;
- 106   1        afterpoint += num;
- 107   1        if(Decimalpoint!=1){    //没有小数点
- 108   2            temp = temp *10 + num;
- 109   2        }
- 110   1        else{
- 111   2            for(i=0;i<times;i++){
- 112   3                afterpoint = afterpoint*0.1;
- 113   3            }
- 114   2            temp = temp+afterpoint;
- 115   2        }
- 116   1      }
-C51 COMPILER V9.60.0.0   MAIN                                                              12/30/2020 23:09:20 PAGE 3   
+  55          #define GPIO_KEY P1 //  0000 0000
+  56          #define GPIO_BUTTON P3 //独立按键使用P3
+  57          sbit K1 = P3^0; sbit K2 = P3^1;
+  58          sbit K3 = P3^2; sbit K4 = P3^3;
+  59          sbit K5 = P3^4; sbit K6 = P3^5;
+  60          sbit K7 = P3^6; sbit K8 = P3^7;
+  61          u8 isNum(u8 num){
+  62   1        if((num>=0)&&(num<=9))
+  63   1          return 1;
+  64   1        return 0;
+  65   1      }
+  66          
+  67          u8 KeyDown(void)
+  68          {
+  69   1        u8 KeyValue= 127;
+  70   1        char a=0;
+  71   1        GPIO_KEY=0x0f;
+  72   1        if(GPIO_KEY!=0x0f)//读取按键是否按下
+  73   1        {
+  74   2          delay(1000);//延时10ms进行消抖
+  75   2          if(GPIO_KEY!=0x0f)//再次检测键盘是否按下
+  76   2          { 
+  77   3            //测试列
+  78   3            GPIO_KEY=0X0F;
+  79   3            switch(GPIO_KEY)
+  80   3            {
+  81   4              case(0X07): KeyValue=0;break;
+  82   4              case(0X0b): KeyValue=1;break;
+  83   4              case(0X0d): KeyValue=2;break;
+  84   4              case(0X0e): KeyValue=3;break;
+  85   4            }
+  86   3            //测试行
+  87   3            GPIO_KEY=0XF0;
+  88   3            switch(GPIO_KEY)
+  89   3            {
+  90   4              case(0X70): KeyValue=KeyValue;break;
+  91   4              case(0Xb0): KeyValue=KeyValue+4;break;
+  92   4              case(0Xd0): KeyValue=KeyValue+8;break;
+  93   4              case(0Xe0): KeyValue=KeyValue+12;break;
+  94   4            }
+  95   3            
+  96   3          }
+  97   2        }
+  98   1        //delay(1000);
+  99   1        while((a<50)&&(GPIO_KEY!=0xf0))  //检测按键松手检测
+ 100   1        {
+ 101   2          delay(140);
+ 102   2          a++;
+ 103   2        }
+ 104   1        return KeyValue;
+ 105   1      }
+ 106          
+ 107          
+ 108          void Error(){
+ 109   1        
+ 110   1      }
+ 111          void handleNum(u8 num){
+ 112   1        u8 i ;
+ 113   1        float afterpoint = 0;
+ 114   1        afterpoint += num;
+ 115   1        if(Decimalpoint!=1){    //没有小数点
+ 116   2            temp = temp *10 + num;
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 10:28:06 PAGE 3   
 
- 117          char Precede(u8 op1,u8 op2){
- 118   1        if(OpPri[op1][op2]==-1){
- 119   2          return '<';
- 120   2        }
- 121   1        else if(OpPri[op1][op2]==0){
- 122   2          return '=';
+ 117   2        }
+ 118   1        else{
+ 119   2            for(i=0;i<times;i++){
+ 120   3                afterpoint = afterpoint*0.1;
+ 121   3            }
+ 122   2            temp = temp+afterpoint;
  123   2        }
- 124   1        else if(OpPri[op1][op2]==1){
- 125   2          return '>';
- 126   2        }
- 127   1        else {
- 128   2          return '?';
- 129   2        }
- 130   1      }
- 131          
- 132          void PushOP(u8 op){
- 133   1        Opcodepoint++;
- 134   1        Opcode[Opcodepoint] = op;
- 135   1      }
- 136          
- 137          u8 PopOP(){
- 138   1        u8 op = Opcode[Opcodepoint];
- 139   1        Opcodepoint--;
- 140   1        return op;
- 141   1      }
- 142          void PushNum(){
- 143   1        operandpoint++;
- 144   1        Operand[operandpoint] = temp;
- 145   1        //重置数字计数
- 146   1        temp = 0;
- 147   1        Decimalpoint= 0;   //重新开始小数
- 148   1      }
- 149          
- 150          void Pushans(float ans){
+ 124   1      }
+ 125          char Precede(u8 op1,u8 op2){
+ 126   1        if(OpPri[op1][op2]==-1){
+ 127   2          return '<';
+ 128   2        }
+ 129   1        else if(OpPri[op1][op2]==0){
+ 130   2          return '=';
+ 131   2        }
+ 132   1        else if(OpPri[op1][op2]==1){
+ 133   2          return '>';
+ 134   2        }
+ 135   1        else {
+ 136   2          return '?';
+ 137   2        }
+ 138   1      }
+ 139          
+ 140          void PushOP(u8 op){
+ 141   1        Opcodepoint++;
+ 142   1        Opcode[Opcodepoint] = op;
+ 143   1      }
+ 144          
+ 145          u8 PopOP(){
+ 146   1        u8 op = Opcode[Opcodepoint];
+ 147   1        Opcodepoint--;
+ 148   1        return op;
+ 149   1      }
+ 150          void PushNum(){
  151   1        operandpoint++;
- 152   1        Operand[operandpoint] = ans;
- 153   1      }
- 154          float PopNum(){
- 155   1        float num = Operand[operandpoint];
- 156   1        operandpoint--;
- 157   1        return num;
- 158   1      }
- 159          float operate(float a, float b,u8 theta){
- 160   1        if(theta==0){
- 161   2          return a+b;
- 162   2        }
- 163   1        else if(theta ==1){
- 164   2          return a-b;
- 165   2        }
- 166   1        else if(theta ==2){
- 167   2          return a*b;
- 168   2        }
- 169   1        else 
- 170   1          return a/b;
- 171   1        
- 172   1      }
- 173          void handleOp(u8 op){
- 174   1        char P = Precede(Opcode[Opcodepoint],op);
- 175   1        u8 theta;
- 176   1        float a, b;
- 177   1        PushNum();          //todo: 如果最开始是符号有问题
- 178   1        switch(P){
-C51 COMPILER V9.60.0.0   MAIN                                                              12/30/2020 23:09:20 PAGE 4   
+ 152   1        Operand[operandpoint] = temp;
+ 153   1        //重置数字计数
+ 154   1        temp = 0;
+ 155   1        Decimalpoint= 0;   //重新开始小数
+ 156   1      }
+ 157          
+ 158          void Pushans(float ans){
+ 159   1        operandpoint++;
+ 160   1        Operand[operandpoint] = ans;
+ 161   1      }
+ 162          float PopNum(){
+ 163   1        float num = Operand[operandpoint];
+ 164   1        operandpoint--;
+ 165   1        return num;
+ 166   1      }
+ 167          float operate(float a, float b,u8 theta){
+ 168   1        if(theta==0){
+ 169   2          return a+b;
+ 170   2        }
+ 171   1        else if(theta ==1){
+ 172   2          return a-b;
+ 173   2        }
+ 174   1        else if(theta ==2){
+ 175   2          return a*b;
+ 176   2        }
+ 177   1        else 
+ 178   1          return a/b;
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 10:28:06 PAGE 4   
 
- 179   2          case '<':
- 180   2            PushOP(op);
- 181   2            break;
- 182   2          case '=':
- 183   2            PopOP();
- 184   2            break;
- 185   2          case '>':
- 186   2            theta = PopOP();
- 187   2            b = PopNum();
- 188   2            a = PopNum();
- 189   2            Pushans(operate(a,b,theta));
- 190   2            break;
- 191   2          case '?':
+ 179   1        
+ 180   1      }
+ 181          void handleOp(u8 op){
+ 182   1        char P = Precede(Opcode[Opcodepoint],op);
+ 183   1        u8 theta;
+ 184   1        float a, b;
+ 185   1        PushNum();          //todo: 如果最开始是符号有问题
+ 186   1        switch(P){
+ 187   2          case '<':
+ 188   2            PushOP(op);
+ 189   2            break;
+ 190   2          case '=':
+ 191   2            PopOP();
  192   2            break;
- 193   2        }
- 194   1      }
- 195          
- 196          
- 197          void Getch(){
- 198   1        u8 op = KeyDown();
- 199   1        while(op==127){
- 200   2          op = KeyDown();
+ 193   2          case '>':
+ 194   2            theta = PopOP();
+ 195   2            b = PopNum();
+ 196   2            a = PopNum();
+ 197   2            Pushans(operate(a,b,theta));
+ 198   2            break;
+ 199   2          case '?':
+ 200   2            break;
  201   2        }
- 202   1        if(op!=127){
- 203   2          if(isNum(op)==1){
- 204   3            handleNum(op);
- 205   3            LcdWriteData(op+'0');
- 206   3          }
- 207   2          else if(op==10){ 
- 208   3            handleOp(0);
- 209   3            LcdWriteData('+');
- 210   3          }
- 211   2          else if(op==11){
- 212   3            handleOp(1);
- 213   3            LcdWriteData('-');
- 214   3          }
- 215   2          else if(op==12){
- 216   3            handleOp(2);
- 217   3            LcdWriteData('*');
- 218   3          }
- 219   2          else if(op==13){
- 220   3            handleOp(3);
- 221   3            LcdWriteData('/');
- 222   3          }
- 223   2          else if(op==14){
- 224   3            if(Decimalpoint==0){
- 225   4                Decimalpoint =1;
- 226   4                LcdWriteData('.');
- 227   4            }
- 228   3            else{
- 229   4              Error();
- 230   4            }
- 231   3          }
- 232   2          else if(op==15){
- 233   3            handleOp(6);
- 234   3            LcdWriteData('=');
- 235   3            LcdWriteData(Operand[operandpoint]);
- 236   3          }
- 237   2        }
- 238   1      }
- 239          void main(){
- 240   1        
-C51 COMPILER V9.60.0.0   MAIN                                                              12/30/2020 23:09:20 PAGE 5   
+ 202   1      }
+ 203          
+ 204          u8 keypros(){
+ 205   1        GPIO_BUTTON = 0xff;
+ 206   1        delay(1000);
+ 207   1        if(K1 == 0){
+ 208   2          while(!K1);
+ 209   2          return 10;  //'+'
+ 210   2        }
+ 211   1        if(K2 == 0){
+ 212   2          while(!K2);
+ 213   2          return 11; 
+ 214   2        }
+ 215   1        if(K3 == 0){
+ 216   2          while(!K3);
+ 217   2          return 12; 
+ 218   2        }
+ 219   1        if(K4 == 0){
+ 220   2          while(!K4);
+ 221   2          return 13; 
+ 222   2        }
+ 223   1        if(K5 == 0){
+ 224   2          while(!K5);
+ 225   2          return 14; 
+ 226   2        }
+ 227   1        if(K6 == 0){
+ 228   2          while(!K6);
+ 229   2          return 15; 
+ 230   2        }
+ 231   1        if(K7 == 0){
+ 232   2          while(!K7);
+ 233   2          return 16; 
+ 234   2        }
+ 235   1        if(K8 == 0){
+ 236   2          while(!K8);
+ 237   2          return 17; 
+ 238   2        }
+ 239   1        return 127;
+ 240   1      }
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 10:28:06 PAGE 5   
 
- 241   1        LcdInit();
- 242   1        //LcdWriteData(1+'0');
- 243   1        InitOpcodeStack();
- 244   1        Getch();
- 245   1        while(1){
- 246   2            Getch();
- 247   2            
- 248   2        }
- 249   1        
- 250   1      }
+ 241          
+ 242          u8 Getch(){
+ 243   1        u8 op = 127;
+ 244   1        while(op==127){
+ 245   2          op = keypros();
+ 246   2          if(op!=127)
+ 247   2            return op ;
+ 248   2          op = KeyDown();
+ 249   2            if(op!=127){
+ 250   3          return op;
+ 251   3          }
+ 252   2        }
+ 253   1      }
+ 254          void main(){
+ 255   1        u8 num ;
+ 256   1        LcdInit();
+ 257   1        //LcdWriteData(1+'0');
+ 258   1        InitOpcodeStack();
+ 259   1        while(1){
+ 260   2          switch(State){
+ 261   3            case 0:
+ 262   3              break;
+ 263   3            case 1:
+ 264   3              break;
+ 265   3            case 2:
+ 266   3              break;
+ 267   3            case 3:
+ 268   3              break;
+ 269   3            case 4:
+ 270   3              break;
+ 271   3            case 5:
+ 272   3              break;
+ 273   3            case 6:
+ 274   3              break;
+ 275   3          }
+ 276   2          num = Getch();
+ 277   2          LcdWriteData(Outputchar[num]);
+ 278   2        }
+ 279   1        
+ 280   1      }
+*** WARNING C291 IN LINE 253 OF main.c: not every exit path returns a value
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1262    ----
+   CODE SIZE        =   1183    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =    128      24
+   XDATA SIZE       =    147      24
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
@@ -279,4 +310,4 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

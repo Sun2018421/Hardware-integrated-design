@@ -5,6 +5,8 @@
 typedef unsigned int u16;	  //对数据类型进行声明定义
 typedef unsigned char u8;
 
+
+char Outputchar[18]={48,49,50,51,52,53,54,55,56,57,43,45,42,47,40,41,46,61};
 #define MAXLEN 15
 char Opcodepoint = -1;  // +1 push 指向当前位置
 char operandpoint = -1 ;
@@ -13,7 +15,9 @@ float Operand[MAXLEN];  //Operadn[MAXLEN-1]为整数部分临时保存位置
 u8 Opcode[MAXLEN];
 u8 times = 1;  //转换成float的长度标记
 u8 Decimalpoint = 0 ;//有无小数点
-
+u8 State = 0; //最开始在初始状态
+void changeState(){
+}
 void InitOpcodeStack(){
 	Opcodepoint++;
 	Opcode[Opcodepoint] = 6;
@@ -49,7 +53,11 @@ void delay(u16 i){
 	P10->L4
 */
 #define GPIO_KEY P1 //  0000 0000
-											
+#define GPIO_BUTTON P3 //独立按键使用P3
+sbit K1 = P3^0; sbit K2 = P3^1;
+sbit K3 = P3^2; sbit K4 = P3^3;
+sbit K5 = P3^4; sbit K6 = P3^5;
+sbit K7 = P3^6; sbit K8 = P3^7;
 u8 isNum(u8 num){
 	if((num>=0)&&(num<=9))
 		return 1;
@@ -193,58 +201,80 @@ void handleOp(u8 op){
 	}
 }
 
-
-void Getch(){
-	u8 op = KeyDown();
-	while(op==127){
-		op = KeyDown();
+u8 keypros(){
+	GPIO_BUTTON = 0xff;
+	delay(1000);
+	if(K1 == 0){
+		while(!K1);
+		return 10;  //'+'
 	}
-	if(op!=127){
-		if(isNum(op)==1){
-			handleNum(op);
-			LcdWriteData(op+'0');
-		}
-		else if(op==10){ 
-			handleOp(0);
-			LcdWriteData('+');
-		}
-		else if(op==11){
-			handleOp(1);
-			LcdWriteData('-');
-		}
-		else if(op==12){
-			handleOp(2);
-			LcdWriteData('*');
-		}
-		else if(op==13){
-			handleOp(3);
-			LcdWriteData('/');
-		}
-		else if(op==14){
-			if(Decimalpoint==0){
-					Decimalpoint =1;
-					LcdWriteData('.');
-			}
-			else{
-				Error();
-			}
-		}
-		else if(op==15){
-			handleOp(6);
-			LcdWriteData('=');
-			LcdWriteData(Operand[operandpoint]);
+	if(K2 == 0){
+		while(!K2);
+		return 11; 
+	}
+	if(K3 == 0){
+		while(!K3);
+		return 12; 
+	}
+	if(K4 == 0){
+		while(!K4);
+		return 13; 
+	}
+	if(K5 == 0){
+		while(!K5);
+		return 14; 
+	}
+	if(K6 == 0){
+		while(!K6);
+		return 15; 
+	}
+	if(K7 == 0){
+		while(!K7);
+		return 16; 
+	}
+	if(K8 == 0){
+		while(!K8);
+		return 17; 
+	}
+	return 127;
+}
+
+u8 Getch(){
+	u8 op = 127;
+	while(op==127){
+		op = keypros();
+		if(op!=127)
+			return op ;
+		op = KeyDown();
+			if(op!=127){
+		return op;
 		}
 	}
 }
 void main(){
-	
+	u8 num ;
 	LcdInit();
 	//LcdWriteData(1+'0');
 	InitOpcodeStack();
-	Getch();
 	while(1){
-			Getch();
-			
+		switch(State){
+			case 0:
+				break;
+			case 1:
+				break;
+			case 2:
+				break;
+			case 3:
+				break;
+			case 4:
+				break;
+			case 5:
+				break;
+			case 6:
+				break;
+		}
+		num = Getch();
+		LcdWriteData(Outputchar[num]);
 	}
 	
 }
