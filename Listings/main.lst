@@ -1,322 +1,428 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 13:43:11 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 19:19:43 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
 OBJECT MODULE PLACED IN .\Objects\main.obj
-COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE main.c LARGE ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Final) DEBUG 
-                    -OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+COMPILER INVOKED BY: D:\keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\Final) DEBUG OBJECTEXTEND PRINT(
+                    -.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
 
 line level    source
 
    1          #include "lcd.h"
    2          #include "reg52.h"
-   3          
-   4          
-   5          typedef unsigned int u16;   //对数据类型进行声明定义
-   6          typedef unsigned char u8;
-   7          
+   3          #include <intrins.h>
+   4          #include <stdio.h>
+   5          
+   6          typedef unsigned int u16;   //对数据类型进行声明定义
+   7          typedef unsigned char u8;
    8          
-   9          char Outputchar[18]={48,49,50,51,52,53,54,55,56,57,43,45,42,47,40,41,46,61};
-  10          #define MAXLEN 15
-  11          char Opcodepoint = -1;  // +1 push 指向当前位置
-  12          char Operandpoint = -1 ;
-  13          char Statepoint = -1;
-  14          float Operand[MAXLEN];  //Operadn[MAXLEN-1]为整数部分临时保存位置
-  15          float a = 0.0 , b = 0.0, c =0.0;
-  16          
-  17          u8 Opcode[MAXLEN];
-  18          u8 StateStack[MAXLEN];
-  19          
-  20          u8 times = 1;  //转换成float的长度标记
-  21          u8 Decimalpoint = 0 ;//有无小数点
-  22          u8 State = 0; //最开始在初始状态
-  23          u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
-  24          u8 multi_div_flag = 0 ; //1->'*' , 0->'/'
-  25          
-  26          void changeState(){
-  27   1      }
-  28          void InitOpcodeStack(){
-  29   1        Opcodepoint = -1;
-  30   1      }
-  31          void InitOperandStack(){
-  32   1        Operandpoint = -1;
-  33   1      }
-  34          void InitStateStack(){
-  35   1        Statepoint = -1;
-  36   1      }
-  37          /*
-  38            优先级表
-  39            -1 = < , 0 = = ,1 = >,2 = error
-  40            + 0,- 1* 2,/ 3,( 4,) 5,# 6
-  41            = -> #
-  42            */
-  43          char OpPri[7][7]={  
-  44            {1,1,-1,-1,-1,1,1},
-  45            {1,1,-1,-1,-1,1,1},
-  46            {1,1,1,1,-1,1,1},
-  47            {1,1,1,1,-1,1,1},
-  48            {-1,-1,-1,-1,-1,0,2},
-  49            {1,1,1,1,2,1,1},
-  50            {-1,-1,-1,-1,-1,2,0}
-  51          };
+   9          
+  10          char Outputchar[18]={48,49,50,51,52,53,54,55,56,57,43,45,42,47,40,41,46,61};
+  11          
+  12          float a = 0.0 , b = 0.0, c =0.0 ,ans = 0.0;
+  13          
+  14          u8 State = 0; //最开始在初始状态
+  15          u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
+  16          u8 multi_div_flag = 0 ; //1->'*' , 0->'/'
+  17          
+  18          void printans(float a){
+  19   1        u8 i ;
+  20   1        char str[8];
+  21   1        sprintf(str,"%f",a);
+  22   1        LcdWriteCom(0xc0); //定位到第二行
+  23   1        for(i= 0 ; i< 8 ; i++){
+  24   2          LcdWriteData(str[i]);
+  25   2        }
+  26   1      }
+  27          void delay(u16 i){  
+  28   1        while(i--);
+  29   1      }
+  30          /*
+  31            P17->H1
+  32            P16->H2
+  33            P15->H3
+  34            P14->H4
+  35          
+  36            P13->L1
+  37            P12->L2
+  38            P11->L3
+  39            P10->L4
+  40          */
+  41          #define GPIO_KEY P1 //  0000 0000
+  42          #define GPIO_BUTTON P3 //独立按键使用P3
+  43          sbit K1 = P3^0; sbit K2 = P3^1;
+  44          sbit K3 = P3^2; sbit K4 = P3^3;
+  45          sbit K5 = P3^4; sbit K6 = P3^5;
+  46          sbit K7 = P3^6; sbit K8 = P3^7;
+  47          u8 isNum(u8 num){
+  48   1        if((num>=0)&&(num<=9))
+  49   1          return 1;
+  50   1        return 0;
+  51   1      }
   52          
-  53          void delay(u16 i){  
-  54   1        while(i--);
-C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 13:43:11 PAGE 2   
+  53          u8 KeyDown(void)
+  54          {
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 19:19:43 PAGE 2   
 
-  55   1      }
-  56          /*
-  57            P17->H1
-  58            P16->H2
-  59            P15->H3
-  60            P14->H4
-  61          
-  62            P13->L1
-  63            P12->L2
-  64            P11->L3
-  65            P10->L4
-  66          */
-  67          #define GPIO_KEY P1 //  0000 0000
-  68          #define GPIO_BUTTON P3 //独立按键使用P3
-  69          sbit K1 = P3^0; sbit K2 = P3^1;
-  70          sbit K3 = P3^2; sbit K4 = P3^3;
-  71          sbit K5 = P3^4; sbit K6 = P3^5;
-  72          sbit K7 = P3^6; sbit K8 = P3^7;
-  73          u8 isNum(u8 num){
-  74   1        if((num>=0)&&(num<=9))
-  75   1          return 1;
-  76   1        return 0;
-  77   1      }
-  78          
-  79          u8 KeyDown(void)
-  80          {
-  81   1        u8 KeyValue= 127;
-  82   1        char a=0;
-  83   1        GPIO_KEY=0x0f;
-  84   1        if(GPIO_KEY!=0x0f)//读取按键是否按下
-  85   1        {
-  86   2          delay(1000);//延时10ms进行消抖
-  87   2          if(GPIO_KEY!=0x0f)//再次检测键盘是否按下
-  88   2          { 
-  89   3            //测试列
-  90   3            GPIO_KEY=0X0F;
-  91   3            switch(GPIO_KEY)
-  92   3            {
-  93   4              case(0X07): KeyValue=0;break;
-  94   4              case(0X0b): KeyValue=1;break;
-  95   4              case(0X0d): KeyValue=2;break;
-  96   4              case(0X0e): KeyValue=3;break;
-  97   4            }
-  98   3            //测试行
-  99   3            GPIO_KEY=0XF0;
- 100   3            switch(GPIO_KEY)
- 101   3            {
- 102   4              case(0X70): KeyValue=KeyValue;break;
- 103   4              case(0Xb0): KeyValue=KeyValue+4;break;
- 104   4              case(0Xd0): KeyValue=KeyValue+8;break;
- 105   4              case(0Xe0): KeyValue=KeyValue+12;break;
- 106   4            }
- 107   3            
- 108   3          }
+  55   1        u8 KeyValue= 127;
+  56   1        char a=0;
+  57   1        GPIO_KEY=0x0f;
+  58   1        if(GPIO_KEY!=0x0f)//读取按键是否按下
+  59   1        {
+  60   2          delay(1000);//延时10ms进行消抖
+  61   2          if(GPIO_KEY!=0x0f)//再次检测键盘是否按下
+  62   2          { 
+  63   3            //测试列
+  64   3            GPIO_KEY=0X0F;
+  65   3            switch(GPIO_KEY)
+  66   3            {
+  67   4              case(0X07): KeyValue=0;break;
+  68   4              case(0X0b): KeyValue=1;break;
+  69   4              case(0X0d): KeyValue=2;break;
+  70   4              case(0X0e): KeyValue=3;break;
+  71   4            }
+  72   3            //测试行
+  73   3            GPIO_KEY=0XF0;
+  74   3            switch(GPIO_KEY)
+  75   3            {
+  76   4              case(0X70): KeyValue=KeyValue;break;
+  77   4              case(0Xb0): KeyValue=KeyValue+4;break;
+  78   4              case(0Xd0): KeyValue=KeyValue+8;break;
+  79   4              case(0Xe0): KeyValue=KeyValue+12;break;
+  80   4            }
+  81   3            
+  82   3          }
+  83   2        }
+  84   1        //delay(1000);
+  85   1        while((a<50)&&(GPIO_KEY!=0xf0))  //检测按键松手检测
+  86   1        {
+  87   2          delay(140);
+  88   2          a++;
+  89   2        }
+  90   1        return KeyValue;
+  91   1      }
+  92          
+  93          
+  94          /*
+  95          从独立按键输入字符
+  96          */
+  97          u8 keypros(){
+  98   1        
+  99   1        
+ 100   1        GPIO_BUTTON = 0xff;
+ 101   1        delay(1000);
+ 102   1        if(K1 == 0){
+ 103   2          while(!K1);
+ 104   2          return 10;  //'+'
+ 105   2        }
+ 106   1        if(K2 == 0){
+ 107   2          while(!K2);
+ 108   2          return 11; 
  109   2        }
- 110   1        //delay(1000);
- 111   1        while((a<50)&&(GPIO_KEY!=0xf0))  //检测按键松手检测
- 112   1        {
- 113   2          delay(140);
- 114   2          a++;
- 115   2        }
- 116   1        return KeyValue;
-C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 13:43:11 PAGE 3   
+ 110   1        if(K3 == 0){
+ 111   2          while(!K3);
+ 112   2          return 12; 
+ 113   2        }
+ 114   1        if(K4 == 0){
+ 115   2          while(!K4);
+ 116   2          return 13; 
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 19:19:43 PAGE 3   
 
- 117   1      }
- 118          
- 119          
- 120          void Error(){
- 121   1        
- 122   1      }
- 123          
- 124          
- 125          void PushOP(u8 op){
- 126   1        Opcodepoint++;
- 127   1        Opcode[Opcodepoint] = op;
- 128   1      }
- 129          
- 130          u8 PopOP(){
- 131   1        u8 op = Opcode[Opcodepoint];
- 132   1        Opcodepoint--;
- 133   1        return op;
- 134   1      }
- 135          void PushNum(float temp){
- 136   1        Operandpoint++;
- 137   1        Operand[Operandpoint] = temp;
- 138   1        //重置数字计数
- 139   1        temp = 0;
- 140   1        Decimalpoint= 0;   //重新开始小数
- 141   1      }
- 142          
- 143          void Pushans(float ans){
- 144   1        Operandpoint++;
- 145   1        Operand[Operandpoint] = ans;
- 146   1      }
- 147          float PopNum(){
- 148   1        float num = Operand[Operandpoint];
- 149   1        Operandpoint--;
- 150   1        return num;
- 151   1      }
- 152          
- 153          
- 154          /*
- 155          从独立按键输入字符
- 156          */
- 157          u8 keypros(){
- 158   1        
- 159   1        
- 160   1        GPIO_BUTTON = 0xff;
- 161   1        delay(1000);
- 162   1        if(K1 == 0){
- 163   2          while(!K1);
- 164   2          return 10;  //'+'
- 165   2        }
- 166   1        if(K2 == 0){
- 167   2          while(!K2);
- 168   2          return 11; 
- 169   2        }
- 170   1        if(K3 == 0){
- 171   2          while(!K3);
- 172   2          return 12; 
- 173   2        }
- 174   1        if(K4 == 0){
- 175   2          while(!K4);
- 176   2          return 13; 
- 177   2        }
- 178   1        if(K5 == 0){
-C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 13:43:11 PAGE 4   
+ 117   2        }
+ 118   1        if(K5 == 0){
+ 119   2          while(!K5);
+ 120   2          return 14; 
+ 121   2        }
+ 122   1        if(K6 == 0){
+ 123   2          while(!K6);
+ 124   2          return 15; 
+ 125   2        }
+ 126   1        if(K7 == 0){
+ 127   2          while(!K7);
+ 128   2          return 16; 
+ 129   2        }
+ 130   1        if(K8 == 0){
+ 131   2          while(!K8);
+ 132   2          return 17; 
+ 133   2        }
+ 134   1        return 127;
+ 135   1      }
+ 136          
+ 137          u8 Getch(){
+ 138   1        u8 op = 127;
+ 139   1        while(op==127){
+ 140   2          op = keypros();
+ 141   2          if(op!=127)
+ 142   2            return op ;
+ 143   2          op = KeyDown();
+ 144   2            if(op!=127){
+ 145   3          return op;
+ 146   3          }
+ 147   2        }
+ 148   1        return 127;
+ 149   1      }
+ 150          
+ 151          
+ 152          void function_S0(){
+ 153   1        u8 num = Getch();
+ 154   1        if(num == 17){
+ 155   2          LcdWriteData(Outputchar[num]);
+ 156   2          printans(a);
+ 157   2        }
+ 158   1        else {
+ 159   2          if(isNum(num)==1){
+ 160   3            a = a*10 +num;
+ 161   3          }
+ 162   2          else if(num == 10){  // + -
+ 163   3            b = 0 ;
+ 164   3            add_sub_flag = 1;
+ 165   3            State = 1;
+ 166   3          }
+ 167   2          else if(num == 11){
+ 168   3            b = 0 ;
+ 169   3            add_sub_flag = 0 ;
+ 170   3            State = 1;
+ 171   3          }
+ 172   2          else if(num ==12 ){
+ 173   3            c = 0 ;
+ 174   3            State = 5;
+ 175   3            multi_div_flag = 1;
+ 176   3          }// * /
+ 177   2          else if(num == 13){
+ 178   3            c = 0 ;
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 19:19:43 PAGE 4   
 
- 179   2          while(!K5);
- 180   2          return 14; 
- 181   2        }
- 182   1        if(K6 == 0){
- 183   2          while(!K6);
- 184   2          return 15; 
- 185   2        }
- 186   1        if(K7 == 0){
- 187   2          while(!K7);
- 188   2          return 16; 
- 189   2        }
- 190   1        if(K8 == 0){
- 191   2          while(!K8);
- 192   2          return 17; 
- 193   2        }
- 194   1        return 127;
- 195   1      }
- 196          
- 197          u8 Getch(){
- 198   1        u8 op = 127;
- 199   1        while(op==127){
- 200   2          op = keypros();
- 201   2          if(op!=127)
- 202   2            return op ;
- 203   2          op = KeyDown();
- 204   2            if(op!=127){
- 205   3          return op;
- 206   3          }
- 207   2        }
- 208   1      }
- 209          
- 210          
- 211          void function_S0(){
- 212   1        u8 num = Getch();
- 213   1        if(isNum(num)==1){
- 214   2          a = a*10 +num;
+ 179   3            State =5 ;
+ 180   3            multi_div_flag = 0;
+ 181   3          }
+ 182   2          LcdWriteData(Outputchar[num]);
+ 183   2        }
+ 184   1      }
+ 185          
+ 186            
+ 187          
+ 188          void function_S1(){
+ 189   1        u8 num = Getch();
+ 190   1        if(isNum(num)==1){
+ 191   2          b = num;
+ 192   2          State = 2;
+ 193   2          LcdWriteData(Outputchar[num]);
+ 194   2        }
+ 195   1        else if(num == 10){ //+
+ 196   2          
+ 197   2        }
+ 198   1        else if(num == 11){ //-
+ 199   2        }
+ 200   1        else {
+ 201   2        }
+ 202   1      }
+ 203          
+ 204          void function_S2(){
+ 205   1        u8 num = Getch();
+ 206   1        if(num==17){
+ 207   2          State = 0;
+ 208   2          if(add_sub_flag ==1){
+ 209   3            a = a+b;
+ 210   3          }
+ 211   2          else 
+ 212   2            a = a-b;
+ 213   2          LcdWriteData(Outputchar[num]);
+ 214   2          printans(a);
  215   2        }
- 216   1        else if(num == 10){  // + -
- 217   2          b = 0 ;
- 218   2          add_sub_flag = 1;
- 219   2          State = 1;
- 220   2        }
- 221   1        else if(num == 11){
- 222   2          b = 0 ;
- 223   2          add_sub_flag = 0 ;
- 224   2          State = 1;
- 225   2        }
- 226   1        else if(num ==12 ){
- 227   2          c = 0 ;
- 228   2          State = 5;
- 229   2          multi_div_flag = 1;
- 230   2        }// * /
- 231   1        else if(num == 13){
- 232   2          c = 0 ;
- 233   2          State =5 ;
- 234   2          multi_div_flag = 0;
- 235   2        }
- 236   1        else if(num == 17){
- 237   2          
- 238   2        }// =
- 239   1        LcdWriteData(Outputchar[num]);
- 240   1      }
-C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 13:43:11 PAGE 5   
+ 216   1        else{
+ 217   2          if(isNum(num) == 1){
+ 218   3            b = b*10 + num;
+ 219   3          }
+ 220   2          else if (num== 12){  //*
+ 221   3            c = 0;
+ 222   3            State = 3;
+ 223   3            multi_div_flag = 1;
+ 224   3          }
+ 225   2          else if (num == 13){ // /
+ 226   3            c = 0;
+ 227   3            State = 3; 
+ 228   3            multi_div_flag = 0;
+ 229   3            LcdWriteData(Outputchar[num]);
+ 230   3          }
+ 231   2          else if (num == 10){
+ 232   3            if(add_sub_flag ==1){
+ 233   4              a = a+b;
+ 234   4            }
+ 235   3            else 
+ 236   3              a = a-b;
+ 237   3            State = 1;
+ 238   3            add_sub_flag = 1;
+ 239   3          }
+ 240   2          else if (num == 11){
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 19:19:43 PAGE 5   
 
- 241          
- 242          void function_S1(){
- 243   1      }
- 244          
- 245          void function_S2(){
- 246   1      }
- 247          
- 248          void function_S3(){
- 249   1      }
- 250          
- 251          void function_S4(){
- 252   1      }
- 253          
- 254          void function_S5(){
- 255   1      }
- 256          
- 257          void function_S6(){
- 258   1      }
- 259          void main(){
- 260   1        LcdInit();
- 261   1        InitOpcodeStack();
- 262   1        InitOperandStack();
- 263   1        while(1){
- 264   2          switch(State){
- 265   3            case 0:
- 266   3              function_S0();
- 267   3              break;
- 268   3            case 1:
- 269   3              function_S1();
- 270   3              break;
- 271   3            case 2:
- 272   3              function_S2();
- 273   3              break;
- 274   3            case 3:
- 275   3              function_S3();
- 276   3              break;
- 277   3            case 4:
- 278   3              function_S4();
- 279   3              break;
- 280   3            case 5:
- 281   3              function_S5();
- 282   3              break;
- 283   3            case 6:
- 284   3              function_S6();
- 285   3              break;
- 286   3          }
- 287   2        }
- 288   1        
- 289   1      }
-*** WARNING C291 IN LINE 208 OF main.c: not every exit path returns a value
+ 241   3            if(add_sub_flag ==1){
+ 242   4              a = a+b;
+ 243   4            }
+ 244   3            else 
+ 245   3              a = a-b;
+ 246   3            State = 1;
+ 247   3            add_sub_flag = 0;
+ 248   3            }
+ 249   2          LcdWriteData(Outputchar[num]);
+ 250   2        }
+ 251   1      }
+ 252          
+ 253          void function_S3(){
+ 254   1        u8 num = Getch();
+ 255   1        if(isNum(num)==1){
+ 256   2          c = num;
+ 257   2          State = 4;
+ 258   2        }
+ 259   1        else {
+ 260   2        }
+ 261   1      }
+ 262          
+ 263          void function_S4(){
+ 264   1        u8 num = Getch();
+ 265   1        if(isNum(num)==1){
+ 266   2          c = c*10+num;
+ 267   2        }
+ 268   1        else if(num == 10){ // +
+ 269   2          if(add_sub_flag == 1){
+ 270   3            if(multi_div_flag ==1)
+ 271   3              a= a+b*c;
+ 272   3            else
+ 273   3              a= a+b/c;
+ 274   3          }
+ 275   2          else{ 
+ 276   3            if(multi_div_flag ==1)
+ 277   3              a= a-b*c;
+ 278   3            else
+ 279   3              a= a-b/c;
+ 280   3          }
+ 281   2          b = 0 ; 
+ 282   2          c = 0;
+ 283   2          add_sub_flag = 1;
+ 284   2          State = 1;
+ 285   2        }
+ 286   1        else if(num == 11){
+ 287   2          if(add_sub_flag == 1){
+ 288   3            if(multi_div_flag ==1)
+ 289   3              a= a+b*c;
+ 290   3            else
+ 291   3              a= a+b/c;
+ 292   3          }
+ 293   2          else{ 
+ 294   3            if(multi_div_flag ==1)
+ 295   3              a= a-b*c;
+ 296   3            else
+ 297   3              a= a-b/c;
+ 298   3          }
+ 299   2          b = 0 ; 
+ 300   2          c = 0;
+ 301   2          add_sub_flag = 0;
+ 302   2          State = 1;
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 19:19:43 PAGE 6   
+
+ 303   2        }
+ 304   1        else if(num == 12){ //*
+ 305   2          if(multi_div_flag == 1){
+ 306   3            b = b*c ;
+ 307   3          }
+ 308   2          else 
+ 309   2            b = b/c;
+ 310   2          c = 0 ;
+ 311   2          State =3;
+ 312   2          multi_div_flag = 1;
+ 313   2        }
+ 314   1        else if(num == 13){ // /
+ 315   2          if(multi_div_flag == 1){
+ 316   3            b = b*c ;
+ 317   3          }
+ 318   2          else 
+ 319   2            b = b/c;
+ 320   2          c = 0 ;
+ 321   2          State =3;
+ 322   2          multi_div_flag = 0;
+ 323   2        }
+ 324   1        else if(num == 17){
+ 325   2          if(add_sub_flag == 1){
+ 326   3            if(multi_div_flag ==1)
+ 327   3              a= a+b*c;
+ 328   3            else
+ 329   3              a= a+b/c;
+ 330   3          }
+ 331   2          else{ 
+ 332   3            if(multi_div_flag ==1)
+ 333   3              a= a-b*c;
+ 334   3            else
+ 335   3              a= a-b/c;
+ 336   3          }
+ 337   2          b = 0 ; 
+ 338   2          c = 0;
+ 339   2          add_sub_flag = 0;
+ 340   2          State = 0;
+ 341   2        }
+ 342   1        if(num!=17){
+ 343   2          LcdWriteData(Outputchar[num]);
+ 344   2        }
+ 345   1        else{
+ 346   2          LcdWriteData(Outputchar[num]);
+ 347   2          printans(a);
+ 348   2        }
+ 349   1      }
+ 350          
+ 351          void function_S5(){
+ 352   1        u8 num = Getch();
+ 353   1      }
+ 354          
+ 355          void function_S6(){
+ 356   1        u8 num = Getch();
+ 357   1      }
+ 358          void function_S7(){
+ 359   1        u8 num = Getch();
+ 360   1      }
+ 361          void main(){
+ 362   1        LcdInit();
+ 363   1        while(1){
+ 364   2          switch(State){
+C51 COMPILER V9.60.0.0   MAIN                                                              01/03/2021 19:19:43 PAGE 7   
+
+ 365   3            case 0:
+ 366   3              function_S0();
+ 367   3              break;
+ 368   3            case 1:
+ 369   3              function_S1();
+ 370   3              break;
+ 371   3            case 2:
+ 372   3              function_S2();
+ 373   3              break;
+ 374   3            case 3:
+ 375   3              function_S3();
+ 376   3              break;
+ 377   3            case 4:
+ 378   3              function_S4();
+ 379   3              break;
+ 380   3            case 5:
+ 381   3              function_S5();
+ 382   3              break;
+ 383   3            case 6:
+ 384   3              function_S6();
+ 385   3              break;
+ 386   3            case 7:
+ 387   3              function_S7(); //结果状态
+ 388   3              break;  
+ 389   3          }
+ 390   2        }
+ 391   1        
+ 392   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    882    ----
-   CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =    177       7
+   CODE SIZE        =   1899    ----
+   CONSTANT SIZE    =      3    ----
+   XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =   ----    ----
+   DATA SIZE        =     37      18
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

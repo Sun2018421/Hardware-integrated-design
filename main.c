@@ -1,55 +1,29 @@
 #include "lcd.h"
 #include "reg52.h"
-
+#include <intrins.h>
+#include <stdio.h>
 
 typedef unsigned int u16;	  //对数据类型进行声明定义
 typedef unsigned char u8;
 
 
 char Outputchar[18]={48,49,50,51,52,53,54,55,56,57,43,45,42,47,40,41,46,61};
-#define MAXLEN 15
-char Opcodepoint = -1;  // +1 push 指向当前位置
-char Operandpoint = -1 ;
-char Statepoint = -1;
-float Operand[MAXLEN];  //Operadn[MAXLEN-1]为整数部分临时保存位置
-float a = 0.0 , b = 0.0, c =0.0;
 
-u8 Opcode[MAXLEN];
-u8 StateStack[MAXLEN];
+float a = 0.0 , b = 0.0, c =0.0 ,ans = 0.0;
 
-u8 times = 1;  //转换成float的长度标记
-u8 Decimalpoint = 0 ;//有无小数点
 u8 State = 0; //最开始在初始状态
 u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
 u8 multi_div_flag = 0 ; //1->'*' , 0->'/'
 
-void changeState(){
+void printans(float a){
+	u8 i ;
+	char str[8];
+	sprintf(str,"%f",a);
+	LcdWriteCom(0xc0); //定位到第二行
+	for(i= 0 ; i< 8 ; i++){
+		LcdWriteData(str[i]);
+	}
 }
-void InitOpcodeStack(){
-	Opcodepoint = -1;
-}
-void InitOperandStack(){
-	Operandpoint = -1;
-}
-void InitStateStack(){
-	Statepoint = -1;
-}
-/*
-	优先级表
-	-1 = < , 0 = = ,1 = >,2 = error
-	+ 0,- 1* 2,/ 3,( 4,) 5,# 6
-	= -> #
-	*/
-char OpPri[7][7]={  
-	{1,1,-1,-1,-1,1,1},
-	{1,1,-1,-1,-1,1,1},
-	{1,1,1,1,-1,1,1},
-	{1,1,1,1,-1,1,1},
-	{-1,-1,-1,-1,-1,0,2},
-	{1,1,1,1,2,1,1},
-	{-1,-1,-1,-1,-1,2,0}
-};
-
 void delay(u16 i){	
 	while(i--);
 }
@@ -117,40 +91,6 @@ u8 KeyDown(void)
 }
 
 
-void Error(){
-	
-}
-
-
-void PushOP(u8 op){
-	Opcodepoint++;
-	Opcode[Opcodepoint] = op;
-}
-
-u8 PopOP(){
-	u8 op = Opcode[Opcodepoint];
-	Opcodepoint--;
-	return op;
-}
-void PushNum(float temp){
-	Operandpoint++;
-	Operand[Operandpoint] = temp;
-	//重置数字计数
-	temp = 0;
-	Decimalpoint= 0;   //重新开始小数
-}
-
-void Pushans(float ans){
-	Operandpoint++;
-	Operand[Operandpoint] = ans;
-}
-float PopNum(){
-	float num = Operand[Operandpoint];
-	Operandpoint--;
-	return num;
-}
-
-
 /*
 从独立按键输入字符
 */
@@ -205,61 +145,221 @@ u8 Getch(){
 		return op;
 		}
 	}
+	return 127;
 }
 
 
 void function_S0(){
 	u8 num = Getch();
-	if(isNum(num)==1){
-		a = a*10 +num;
+	if(num == 17){
+		LcdWriteData(Outputchar[num]);
+		printans(a);
 	}
-	else if(num == 10){  // + -
-		b = 0 ;
+	else {
+		if(isNum(num)==1){
+			a = a*10 +num;
+		}
+		else if(num == 10){  // + -
+			b = 0 ;
+			add_sub_flag = 1;
+			State = 1;
+		}
+		else if(num == 11){
+			b = 0 ;
+			add_sub_flag = 0 ;
+			State = 1;
+		}
+		else if(num ==12 ){
+			c = 0 ;
+			State = 5;
+			multi_div_flag = 1;
+		}// * /
+		else if(num == 13){
+			c = 0 ;
+			State =5 ;
+			multi_div_flag = 0;
+		}
+		LcdWriteData(Outputchar[num]);
+	}
+}
+
+	
+
+void function_S1(){
+	u8 num = Getch();
+	if(isNum(num)==1){
+		b = num;
+		State = 2;
+		LcdWriteData(Outputchar[num]);
+	}
+	else if(num == 10){ //+
+		
+	}
+	else if(num == 11){ //-
+	}
+	else {
+	}
+}
+
+void function_S2(){
+	u8 num = Getch();
+	if(num==17){
+		State = 0;
+		if(add_sub_flag ==1){
+			a = a+b;
+		}
+		else 
+			a = a-b;
+		LcdWriteData(Outputchar[num]);
+		printans(a);
+	}
+	else{
+		if(isNum(num) == 1){
+			b = b*10 + num;
+		}
+		else if (num== 12){  //*
+			c = 0;
+			State = 3;
+			multi_div_flag = 1;
+		}
+		else if (num == 13){ // /
+			c = 0;
+			State = 3; 
+			multi_div_flag = 0;
+			LcdWriteData(Outputchar[num]);
+		}
+		else if (num == 10){
+			if(add_sub_flag ==1){
+				a = a+b;
+			}
+			else 
+				a = a-b;
+			State = 1;
+			add_sub_flag = 1;
+		}
+		else if (num == 11){
+			if(add_sub_flag ==1){
+				a = a+b;
+			}
+			else 
+				a = a-b;
+			State = 1;
+			add_sub_flag = 0;
+			}
+		LcdWriteData(Outputchar[num]);
+	}
+}
+
+void function_S3(){
+	u8 num = Getch();
+	if(isNum(num)==1){
+		c = num;
+		State = 4;
+	}
+	else {
+	}
+}
+
+void function_S4(){
+	u8 num = Getch();
+	if(isNum(num)==1){
+		c = c*10+num;
+	}
+	else if(num == 10){ // +
+		if(add_sub_flag == 1){
+			if(multi_div_flag ==1)
+				a= a+b*c;
+			else
+				a= a+b/c;
+		}
+		else{ 
+			if(multi_div_flag ==1)
+				a= a-b*c;
+			else
+				a= a-b/c;
+		}
+		b = 0 ; 
+		c = 0;
 		add_sub_flag = 1;
 		State = 1;
 	}
 	else if(num == 11){
-		b = 0 ;
-		add_sub_flag = 0 ;
+		if(add_sub_flag == 1){
+			if(multi_div_flag ==1)
+				a= a+b*c;
+			else
+				a= a+b/c;
+		}
+		else{ 
+			if(multi_div_flag ==1)
+				a= a-b*c;
+			else
+				a= a-b/c;
+		}
+		b = 0 ; 
+		c = 0;
+		add_sub_flag = 0;
 		State = 1;
 	}
-	else if(num ==12 ){
+	else if(num == 12){ //*
+		if(multi_div_flag == 1){
+			b = b*c ;
+		}
+		else 
+			b = b/c;
 		c = 0 ;
-		State = 5;
+		State =3;
 		multi_div_flag = 1;
-	}// * /
-	else if(num == 13){
+	}
+	else if(num == 13){ // /
+		if(multi_div_flag == 1){
+			b = b*c ;
+		}
+		else 
+			b = b/c;
 		c = 0 ;
-		State =5 ;
+		State =3;
 		multi_div_flag = 0;
 	}
 	else if(num == 17){
-		
-	}// =
-	LcdWriteData(Outputchar[num]);
-}
-
-void function_S1(){
-}
-
-void function_S2(){
-}
-
-void function_S3(){
-}
-
-void function_S4(){
+		if(add_sub_flag == 1){
+			if(multi_div_flag ==1)
+				a= a+b*c;
+			else
+				a= a+b/c;
+		}
+		else{ 
+			if(multi_div_flag ==1)
+				a= a-b*c;
+			else
+				a= a-b/c;
+		}
+		b = 0 ; 
+		c = 0;
+		add_sub_flag = 0;
+		State = 0;
+	}
+	if(num!=17){
+		LcdWriteData(Outputchar[num]);
+	}
+	else{
+		LcdWriteData(Outputchar[num]);
+		printans(a);
+	}
 }
 
 void function_S5(){
+	u8 num = Getch();
 }
 
 void function_S6(){
+	u8 num = Getch();
+}
+void function_S7(){
+	u8 num = Getch();
 }
 void main(){
 	LcdInit();
-	InitOpcodeStack();
-	InitOperandStack();
 	while(1){
 		switch(State){
 			case 0:
@@ -283,6 +383,9 @@ void main(){
 			case 6:
 				function_S6();
 				break;
+			case 7:
+				function_S7(); //结果状态
+				break;	
 		}
 	}
 	

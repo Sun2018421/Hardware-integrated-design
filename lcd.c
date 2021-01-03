@@ -47,14 +47,3 @@ void LcdInit(){
 	LcdWriteCom(0x80);  //设置数据指针起点 1000 0000
 	
 }
-//void LcdDisplay(uchar *dat,uchar len){
-//	uchar i;
-//	if(len<=16){
-//		lcdWriteCom(0x80);  //控制起点在
-//		for(i = 0 ; i<len ; i++){
-//		}
-//	}
-//	if(len-16>0){
-//	}
-//	
-//}
