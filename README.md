@@ -1,5 +1,5 @@
 # Hardware-integrated-design
-使用普中51-单核-A5实验箱
+使用普中51-单核-A5实验箱，实现float类型混合四则运算
 ## 接线
 Lcd1602插入盒子上的接口
 P1 接 jp3(反接)
