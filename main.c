@@ -1,7 +1,7 @@
 #include "lcd.h"
 #include <reg51.h>
 #include <stdio.h>
-
+#include <math.h>
 typedef unsigned int u16;	  //对数据类型进行声明定义
 typedef unsigned char u8;
 
@@ -14,6 +14,18 @@ u8 State = 0; //最开始在初始状态
 u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
 u8 multi_div_flag = 0 ; //1->'*' , 0->'/'
 
+void initA(){
+	a = 0 ;
+	flag_a = 0;
+}
+void initB(){
+	b = 0 ;
+	flag_b =0 ;
+}
+void initC(){
+	c = 0 ;
+	flag_c = 0;
+}
 void printans(float a){
 	u8 i ;
 	char str[8];
@@ -147,36 +159,54 @@ u8 Getch(){
 	return 127;
 }
 
-
+/* if 不是小数
+//		更新小数flag
+//	update 
+	 if 不是小数
+			*10 + nun
+	 是小数
+			根据小数计算
+//
+*/
 void function_S0(){
 	u8 num = Getch();
 	if(num == 17){
 		LcdWriteData(Outputchar[num]);
 		printans(a);
 	}
+	else if(num == 16){
+		if(flag_a == 0){
+			flag_a = 1;
+			LcdWriteData(Outputchar[num]);
+		}
+	}	
 	else {
 		if(isNum(num)==1){
 			if(flag_a == 0){
 					a = a*10 +num;
 			}
+			else{
+					a += num*(float)pow(0.1,flag_a);
+					flag_a ++;
+			}
 		}
 		else if(num == 10){  // + -
-			b = 0 ;
+			initB();
 			add_sub_flag = 1;
 			State = 1;
 		}
 		else if(num == 11){
-			b = 0 ;
+			initB();
 			add_sub_flag = 0 ;
 			State = 1;
 		}
 		else if(num ==12 ){
-			c = 0 ;
+			initC();
 			State = 5;
 			multi_div_flag = 1;
 		}// * /
 		else if(num == 13){
-			c = 0 ;
+			initC();
 			State =5 ;
 			multi_div_flag = 0;
 		}
@@ -192,11 +222,6 @@ void function_S1(){
 		b = num;
 		State = 2;
 		LcdWriteData(Outputchar[num]);
-	}
-	else if(num == 10){ //+
-		
-	}
-	else if(num == 11){ //-
 	}
 	else {
 	}
@@ -214,17 +239,29 @@ void function_S2(){
 		LcdWriteData(Outputchar[num]);
 		printans(a);
 	}
+	else if(num == 16){
+		if(flag_b == 0){
+			flag_b = 1;
+			LcdWriteData(Outputchar[num]);
+		}
+	}	
 	else{
 		if(isNum(num) == 1){
-			b = b*10 + num;
+			if(flag_b == 0){
+					b = b*10 +num;
+			}
+			else{
+					b += num*(float)pow(0.1,flag_b);
+					flag_b ++;
+			}
 		}
 		else if (num== 12){  //*
-			c = 0;
+			initC();
 			State = 3;
 			multi_div_flag = 1;
 		}
 		else if (num == 13){ // /
-			c = 0;
+			initC();
 			State = 3; 
 			multi_div_flag = 0;
 			LcdWriteData(Outputchar[num]);
@@ -265,8 +302,19 @@ void function_S3(){
 void function_S4(){
 	u8 num = Getch();
 	if(isNum(num)==1){
-		c = c*10+num;
+			if(flag_c == 0){
+					c = c*10 +num;
+			}
+			else{
+					c += num*(float)pow(0.1,flag_c);
+					flag_c ++;
+			}
 	}
+	else if(num == 16){
+		if(flag_c == 0){
+			flag_c = 1;
+		}
+	}	
 	else if(num == 10){ // +
 		if(add_sub_flag == 1){
 			if(multi_div_flag ==1)
@@ -280,8 +328,8 @@ void function_S4(){
 			else
 				a= a-b/c;
 		}
-		b = 0 ; 
-		c = 0;
+		initB();
+		initC();
 		add_sub_flag = 1;
 		State = 1;
 	}
@@ -298,8 +346,8 @@ void function_S4(){
 			else
 				a= a-b/c;
 		}
-		b = 0 ; 
-		c = 0;
+		initB();
+		initC();
 		add_sub_flag = 0;
 		State = 1;
 	}
@@ -309,7 +357,7 @@ void function_S4(){
 		}
 		else 
 			b = b/c;
-		c = 0 ;
+		initC();
 		State =3;
 		multi_div_flag = 1;
 	}
@@ -319,7 +367,7 @@ void function_S4(){
 		}
 		else 
 			b = b/c;
-		c = 0 ;
+		initC();
 		State =3;
 		multi_div_flag = 0;
 	}
@@ -336,8 +384,8 @@ void function_S4(){
 			else
 				a= a-b/c;
 		}
-		b = 0 ; 
-		c = 0;
+		initB();
+		initC();
 		add_sub_flag = 0;
 		State = 0;
 	}
@@ -365,72 +413,79 @@ void function_S5(){
 void function_S6(){
 	u8 num = Getch();
 	if(isNum(num)==1){
-		c = c*10 +num;
+		if(flag_c == 0){
+				c = c*10 +num;
+		}
+		else{
+				c += num*(float)pow(0.1,flag_c);
+				flag_c ++;
+		}
 	}
+	else if(num == 16){
+		if(flag_c== 0){
+			flag_c = 1;
+		}
+	}	
 	else if(num == 10){ // +
 		if(multi_div_flag==1){
 			a = a*c;
-			c = 0 ;
 			State = 1;
 			add_sub_flag = 1;	
 		}
 		else{
 			a = a/c;
-			c = 0 ;
 			State = 1;
 			add_sub_flag = 1;	
 		}
+		initC();
 	}
 	else if (num == 11){ // -
 		if(multi_div_flag==1){
 			a = a*c;
-			c = 0 ;
 			State = 1;
 			add_sub_flag = 0;	
 		}
 		else{
 			a = a/c;
-			c = 0 ;
 			State = 1;
 			add_sub_flag = 0;	
 		}
+		initC();
 	}
 	else if(num ==12){ // *
 		if(multi_div_flag==1){
 			a = a*c;
-			c = 0 ;
 			multi_div_flag = 1;	
 		}
 		else{
 			a = a/c;
-			c = 0 ;
 			multi_div_flag = 1;	
 		}
 		State = 5;
+		initC();
 	}
 	else if (num == 13){ // /
 		if(multi_div_flag==1){
 			a = a*c;
-			c = 0 ;
 			multi_div_flag = 0;	
 		}
 		else{
 			a = a/c;
-			c = 0 ;
 			multi_div_flag = 0;	
 		}
+		initC();
 		State = 5;
 	}
 	else if(num == 17){ // ==
 		State = 0;
 		if(multi_div_flag==1){
 			a = a*c;
-			b = c = 0;
 		}
 		else{
 			a = a/c;
-			b = c = 0 ;
 		}
+		initB();
+		initC();
 	}
 	if(num == 17){
 		LcdWriteData(Outputchar[num]);
