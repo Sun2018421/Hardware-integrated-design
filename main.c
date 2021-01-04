@@ -13,6 +13,10 @@ u8 flag_a = 0 , flag_b = 0 , flag_c =0 ;
 u8 State = 0; //最开始在初始状态
 u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
 u8 multi_div_flag = 0 ; //1->'*' , 0->'/'
+void initA(){
+	a = 0;
+	flag_a = 0;
+}
 void initB(){
 	b = 0 ;
 	flag_b =0 ;
@@ -93,6 +97,8 @@ u8 KeyDown(void)
 		delay(160);
 		adelay++;
 	}
+	if(KeyValue == 15)
+		return 18;
 	return KeyValue;
 }
 
@@ -163,6 +169,15 @@ u8 Getch(){
 			根据小数计算
 //
 */
+
+void clear(){
+		//	LCD1602_E = 0;
+		LcdWriteCom(0x01);
+		initA();
+		initB();
+		initC();
+		State = 0;
+}
 void function_S0(){
 	u8 num = Getch();
 	if(num == 17){
@@ -175,6 +190,9 @@ void function_S0(){
 			LcdWriteData(Outputchar[num]);
 		}
 	}	
+	else if(num == 18){
+	clear();
+	}
 	else {
 		if(isNum(num)==1){
 			if(flag_a == 0){
@@ -207,6 +225,7 @@ void function_S0(){
 		}
 		LcdWriteData(Outputchar[num]);
 	}
+
 }
 
 	
@@ -219,7 +238,8 @@ void function_S1(){
 		State = 2;
 		LcdWriteData(Outputchar[num]);
 	}
-	else {
+	else if(num == 18){
+		clear();
 	}
 }
 
@@ -234,6 +254,9 @@ void function_S2(){
 			a = a-b;
 		LcdWriteData(Outputchar[num]);
 		printans(a);
+	}
+	else if(num == 18){
+		clear();
 	}
 	else if(num == 16){
 		if(flag_b == 0){
@@ -291,7 +314,8 @@ void function_S3(){
 		State = 4;
 		LcdWriteData(Outputchar[num]);
 	}
-	else {
+	else if(num == 18){
+		clear();
 	}
 }
 
@@ -389,6 +413,9 @@ void function_S4(){
 	if(num!=17){
 		LcdWriteData(Outputchar[num]);
 	}
+	else if(num == 18){
+		clear();
+	}
 	else{
 		LcdWriteData(Outputchar[num]);
 		printans(a);
@@ -403,7 +430,8 @@ void function_S5(){
 		State = 6;
 		LcdWriteData(Outputchar[num]);
 	}
-	else {
+	else if(num==18){
+		clear();
 	}
 }
 
@@ -484,10 +512,14 @@ void function_S6(){
 //		initB();
 //		initC();
 	}
+	
 	if(num == 17){
 		LcdWriteData(Outputchar[num]);
 		printans(a);
-	}else{
+	}else if(num == 18){
+		clear();
+	}
+	else{
 		LcdWriteData(Outputchar[num]);
 	}
 }
