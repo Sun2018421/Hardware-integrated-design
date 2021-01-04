@@ -74,7 +74,7 @@ void PopStack(){
 			break;
 		case 1:
 			State = 2;
-			if(past & 128 ==128){  // +
+			if((past & 128) ==128){  // +
 				add_sub_flag = 1;
 			}
 			else 
@@ -84,12 +84,12 @@ void PopStack(){
 			break;
 		case 3:
 			State = 4;
-			if(past & 128 == 128){
+			if((past & 128) == 128){
 				add_sub_flag= 1;
 			}
 			else 
 				add_sub_flag = 0;
-			if(past & 64 == 64){
+			if((past & 64) == 64){
 				multi_div_flag = 1;
 			}
 			else
@@ -100,13 +100,13 @@ void PopStack(){
 			break;
 		case 5:
 			State = 6;
-			if(past & 64 ==64){  // +
+			if((past & 64) == 64){  // *
 				multi_div_flag = 1;
 			}
 			else 
 				multi_div_flag = 0;
 			c = a;
-			a = pastdata[pastpoint--];			
+			a = pastdata[pastpoint--];	
 			break;
 	}
 }
