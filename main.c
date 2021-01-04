@@ -13,11 +13,6 @@ u8 flag_a = 0 , flag_b = 0 , flag_c =0 ;
 u8 State = 0; //最开始在初始状态
 u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
 u8 multi_div_flag = 0 ; //1->'*' , 0->'/'
-
-void initA(){
-	a = 0 ;
-	flag_a = 0;
-}
 void initB(){
 	b = 0 ;
 	flag_b =0 ;
@@ -95,7 +90,7 @@ u8 KeyDown(void)
 	//delay(1000);
 	while((adelay<50)&&(GPIO_KEY!=0xf0))	 //检测按键松手检测
 	{
-		delay(150);
+		delay(160);
 		adelay++;
 	}
 	return KeyValue;
@@ -191,22 +186,22 @@ void function_S0(){
 			}
 		}
 		else if(num == 10){  // + -
-			initB();
+	//		initB();
 			add_sub_flag = 1;
 			State = 1;
 		}
 		else if(num == 11){
-			initB();
+	//		initB();
 			add_sub_flag = 0 ;
 			State = 1;
 		}
 		else if(num ==12 ){
-			initC();
+//			initC();
 			State = 5;
 			multi_div_flag = 1;
 		}// * /
 		else if(num == 13){
-			initC();
+	//		initC();
 			State =5 ;
 			multi_div_flag = 0;
 		}
@@ -218,6 +213,7 @@ void function_S0(){
 
 void function_S1(){
 	u8 num = Getch();
+	initB();
 	if(isNum(num)==1){
 		b = num;
 		State = 2;
@@ -256,15 +252,14 @@ void function_S2(){
 			}
 		}
 		else if (num== 12){  //*
-			initC();
+		//	initC();
 			State = 3;
 			multi_div_flag = 1;
 		}
 		else if (num == 13){ // /
-			initC();
+			//initC();
 			State = 3; 
 			multi_div_flag = 0;
-			LcdWriteData(Outputchar[num]);
 		}
 		else if (num == 10){
 			if(add_sub_flag ==1){
@@ -290,6 +285,7 @@ void function_S2(){
 
 void function_S3(){
 	u8 num = Getch();
+	initC();
 	if(isNum(num)==1){
 		c = num;
 		State = 4;
@@ -328,8 +324,8 @@ void function_S4(){
 			else
 				a= a-b/c;
 		}
-		initB();
-		initC();
+//		initB();
+//		initC();
 		add_sub_flag = 1;
 		State = 1;
 	}
@@ -346,8 +342,8 @@ void function_S4(){
 			else
 				a= a-b/c;
 		}
-		initB();
-		initC();
+//		initB();
+//		initC();
 		add_sub_flag = 0;
 		State = 1;
 	}
@@ -357,7 +353,7 @@ void function_S4(){
 		}
 		else 
 			b = b/c;
-		initC();
+//		initC();
 		State =3;
 		multi_div_flag = 1;
 	}
@@ -367,7 +363,7 @@ void function_S4(){
 		}
 		else 
 			b = b/c;
-		initC();
+//		initC();
 		State =3;
 		multi_div_flag = 0;
 	}
@@ -384,8 +380,8 @@ void function_S4(){
 			else
 				a= a-b/c;
 		}
-		initB();
-		initC();
+//		initB();
+//		initC();
 		add_sub_flag = 0;
 		State = 0;
 	}
@@ -401,6 +397,7 @@ void function_S4(){
 
 void function_S5(){
 	u8 num = Getch();
+	initC();
 	if(isNum(num)==1){
 		c = num;
 		State = 6;
@@ -437,7 +434,7 @@ void function_S6(){
 			State = 1;
 			add_sub_flag = 1;	
 		}
-		initC();
+//		initC();
 	}
 	else if (num == 11){ // -
 		if(multi_div_flag==1){
@@ -450,7 +447,7 @@ void function_S6(){
 			State = 1;
 			add_sub_flag = 0;	
 		}
-		initC();
+//		initC();
 	}
 	else if(num ==12){ // *
 		if(multi_div_flag==1){
@@ -462,7 +459,7 @@ void function_S6(){
 			multi_div_flag = 1;	
 		}
 		State = 5;
-		initC();
+//		initC();
 	}
 	else if (num == 13){ // /
 		if(multi_div_flag==1){
@@ -473,7 +470,7 @@ void function_S6(){
 			a = a/c;
 			multi_div_flag = 0;	
 		}
-		initC();
+//		initC();
 		State = 5;
 	}
 	else if(num == 17){ // ==
@@ -484,8 +481,8 @@ void function_S6(){
 		else{
 			a = a/c;
 		}
-		initB();
-		initC();
+//		initB();
+//		initC();
 	}
 	if(num == 17){
 		LcdWriteData(Outputchar[num]);
@@ -497,6 +494,7 @@ void function_S6(){
 void function_S7(){
 	u8 num = Getch();
 }
+//todo : a 的flag没有更新过
 void main(){
 	LcdInit();
 	while(1){
