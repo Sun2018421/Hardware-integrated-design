@@ -1,7 +1,7 @@
 #ifndef __LCD_H_
 #define __LCD_H_
 
-#include "reg52.h"
+#include "reg51.h"
 
 #ifndef uchar
 #define uchar unsigned char

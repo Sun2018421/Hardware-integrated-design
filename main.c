@@ -1,6 +1,5 @@
 #include "lcd.h"
-#include "reg52.h"
-#include <intrins.h>
+#include <reg51.h>
 #include <stdio.h>
 
 typedef unsigned int u16;	  //对数据类型进行声明定义
@@ -10,7 +9,7 @@ typedef unsigned char u8;
 char Outputchar[18]={48,49,50,51,52,53,54,55,56,57,43,45,42,47,40,41,46,61};
 
 float a = 0.0 , b = 0.0, c =0.0 ,ans = 0.0;
-
+u8 flag_a = 0 , flag_b = 0 , flag_c =0 ;
 u8 State = 0; //最开始在初始状态
 u8 add_sub_flag = 0 ; //1->'+' , 0->'-'
 u8 multi_div_flag = 0 ; //1->'*' , 0->'/'
@@ -53,7 +52,7 @@ u8 isNum(u8 num){
 u8 KeyDown(void)
 {
 	u8 KeyValue= 127;
-	char a=0;
+	char adelay=0;
 	GPIO_KEY=0x0f;
 	if(GPIO_KEY!=0x0f)//读取按键是否按下
 	{
@@ -82,10 +81,10 @@ u8 KeyDown(void)
 		}
 	}
 	//delay(1000);
-	while((a<50)&&(GPIO_KEY!=0xf0))	 //检测按键松手检测
+	while((adelay<50)&&(GPIO_KEY!=0xf0))	 //检测按键松手检测
 	{
-		delay(140);
-		a++;
+		delay(150);
+		adelay++;
 	}
 	return KeyValue;
 }
@@ -141,7 +140,7 @@ u8 Getch(){
 		if(op!=127)
 			return op ;
 		op = KeyDown();
-			if(op!=127){
+		if(op!=127){
 		return op;
 		}
 	}
@@ -157,7 +156,9 @@ void function_S0(){
 	}
 	else {
 		if(isNum(num)==1){
-			a = a*10 +num;
+			if(flag_a == 0){
+					a = a*10 +num;
+			}
 		}
 		else if(num == 10){  // + -
 			b = 0 ;
@@ -255,6 +256,7 @@ void function_S3(){
 	if(isNum(num)==1){
 		c = num;
 		State = 4;
+		LcdWriteData(Outputchar[num]);
 	}
 	else {
 	}
@@ -339,6 +341,7 @@ void function_S4(){
 		add_sub_flag = 0;
 		State = 0;
 	}
+	
 	if(num!=17){
 		LcdWriteData(Outputchar[num]);
 	}
@@ -350,10 +353,91 @@ void function_S4(){
 
 void function_S5(){
 	u8 num = Getch();
+	if(isNum(num)==1){
+		c = num;
+		State = 6;
+		LcdWriteData(Outputchar[num]);
+	}
+	else {
+	}
 }
 
 void function_S6(){
 	u8 num = Getch();
+	if(isNum(num)==1){
+		c = c*10 +num;
+	}
+	else if(num == 10){ // +
+		if(multi_div_flag==1){
+			a = a*c;
+			c = 0 ;
+			State = 1;
+			add_sub_flag = 1;	
+		}
+		else{
+			a = a/c;
+			c = 0 ;
+			State = 1;
+			add_sub_flag = 1;	
+		}
+	}
+	else if (num == 11){ // -
+		if(multi_div_flag==1){
+			a = a*c;
+			c = 0 ;
+			State = 1;
+			add_sub_flag = 0;	
+		}
+		else{
+			a = a/c;
+			c = 0 ;
+			State = 1;
+			add_sub_flag = 0;	
+		}
+	}
+	else if(num ==12){ // *
+		if(multi_div_flag==1){
+			a = a*c;
+			c = 0 ;
+			multi_div_flag = 1;	
+		}
+		else{
+			a = a/c;
+			c = 0 ;
+			multi_div_flag = 1;	
+		}
+		State = 5;
+	}
+	else if (num == 13){ // /
+		if(multi_div_flag==1){
+			a = a*c;
+			c = 0 ;
+			multi_div_flag = 0;	
+		}
+		else{
+			a = a/c;
+			c = 0 ;
+			multi_div_flag = 0;	
+		}
+		State = 5;
+	}
+	else if(num == 17){ // ==
+		State = 0;
+		if(multi_div_flag==1){
+			a = a*c;
+			b = c = 0;
+		}
+		else{
+			a = a/c;
+			b = c = 0 ;
+		}
+	}
+	if(num == 17){
+		LcdWriteData(Outputchar[num]);
+		printans(a);
+	}else{
+		LcdWriteData(Outputchar[num]);
+	}
 }
 void function_S7(){
 	u8 num = Getch();
@@ -388,5 +472,4 @@ void main(){
 				break;	
 		}
 	}
-	
 }
