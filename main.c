@@ -262,7 +262,10 @@ void clear(){
 		initA();
 		initB();
 		initC();
+		count = 0;
 		State = 0;
+		stackpoint = -1;
+		pastpoint = -1;
 }
 void function_S0(){
 	u8 num = Getch();
@@ -272,6 +275,19 @@ void function_S0(){
 	}
 	else if(num == 18){
 	clear();
+	}
+	else if(num == 15){
+		if(count>0){
+				PopStack();
+				LcdWriteData(Outputchar[num]);
+				count --;
+			}
+	}
+	else if(num == 16){
+			if(flag_a == 0){
+				flag_a = 1;
+				LcdWriteData(Outputchar[num]);
+			}
 	}
 	else {
 		if(isNum(num)==1){
@@ -283,17 +299,10 @@ void function_S0(){
 					flag_a ++;
 			}
 		}
-		else if(num == 16){
-			if(flag_a == 0){
-				flag_a = 1;
-			}
-			}
 		else if(num == 14){
 			pushState();
 			State = 0;
-		}
-		else if(num == 15){
-			PopStack();
+			count++;
 		}
 		else if(num == 10){  // + -
 			add_sub_flag = 1;
@@ -313,7 +322,6 @@ void function_S0(){
 		}
 		LcdWriteData(Outputchar[num]);
 	}
-
 }
 
 	
@@ -328,6 +336,7 @@ void function_S1(){
 	}
 	else if(num == 14){
 		pushState();
+		count++;
 		State = 0;
 		LcdWriteData(Outputchar[num]);
 	}
@@ -351,6 +360,22 @@ void function_S2(){
 	else if(num == 18){
 		clear();
 	}
+	else if(num == 16){
+		if(flag_b == 0){
+			flag_b = 1;
+			LcdWriteData(Outputchar[num]);
+			}
+	}	
+	else if(num == 15){
+		if(count>0){
+				if(add_sub_flag == 1)
+				a = a+b ;
+				else a = a-b;
+				PopStack();
+				LcdWriteData(Outputchar[num]);
+				count --;
+			}
+	}
 	else{
 		if(isNum(num) == 1){
 			if(flag_b == 0){
@@ -365,18 +390,7 @@ void function_S2(){
 			State = 3;
 			multi_div_flag = 1;
 		}
-		else if(num == 15){  // )
-		if(add_sub_flag == 1)
-			a = a+b ;
-		else a = a-b;
-			
-		PopStack();
-		}
-		else if(num == 16){
-		if(flag_b == 0){
-			flag_b = 1;
-			}
-		}	
+
 		else if (num == 13){ // /
 			State = 3; 
 			multi_div_flag = 0;
@@ -414,6 +428,7 @@ void function_S3(){
 	else if(num == 14){
 		pushState();
 		State = 0;
+		count++;
 		LcdWriteData(Outputchar[num]);
 	}
 	else if(num == 18){
@@ -435,8 +450,28 @@ void function_S4(){
 	else if(num == 16){
 		if(flag_c == 0){
 			flag_c = 1;
+			LcdWriteData(Outputchar[num]);
 		}
 	}	
+	else if(num == 15){
+		if(count > 0){
+			if(add_sub_flag == 1){
+				if(multi_div_flag ==1)
+					a= a+b*c;
+				else
+					a= a+b/c;
+			}
+			else{ 
+				if(multi_div_flag ==1)
+					a= a-b*c;
+				else
+					a= a-b/c;
+			}
+			PopStack();
+			LcdWriteData(Outputchar[num]);
+			count --;
+		}
+	}
 	else if(num == 10){ // +
 		if(add_sub_flag == 1){
 			if(multi_div_flag ==1)
@@ -503,30 +538,15 @@ void function_S4(){
 		add_sub_flag = 0;
 		State = 0;
 	}
-	else if(num == 15){
-		if(add_sub_flag == 1){
-			if(multi_div_flag ==1)
-				a= a+b*c;
-			else
-				a= a+b/c;
-		}
-		else{ 
-			if(multi_div_flag ==1)
-				a= a-b*c;
-			else
-				a= a-b/c;
-		}
-		PopStack();
-	}
-	if(num!=17){
-		LcdWriteData(Outputchar[num]);
-	}
-	else if(num == 18){
+	if(num == 18){
 		clear();
 	}
-	else{
+	else if(num==17){
 		LcdWriteData(Outputchar[num]);
 		printans(a);
+	}
+	else if((num !=15)&&(num!=16)){
+		LcdWriteData(Outputchar[num]);
 	}
 }
 
@@ -542,6 +562,7 @@ void function_S5(){
 		pushState();
 		State = 0;
 		LcdWriteData(Outputchar[num]);
+		count ++;
 	}
 	else if(num==18){
 		clear();
@@ -562,6 +583,7 @@ void function_S6(){
 	else if(num == 16){
 		if(flag_c== 0){
 			flag_c = 1;
+			LcdWriteData(Outputchar[num]);
 		}
 	}	
 	else if(num == 10){ // +
@@ -620,22 +642,26 @@ void function_S6(){
 		}
 	}
 	else if(num == 15){
-		if(multi_div_flag==1){
-			a = a*c;
+		if(count >0){
+			if(multi_div_flag==1){
+				a = a*c;
+			}
+			else{
+				a = a/c;
+			}
+			PopStack();
+			LcdWriteData(Outputchar[num]);
+			count--;
 		}
-		else{
-			a = a/c;
-		}
-		PopStack();
 	}
-	
-	if(num == 17){
-		LcdWriteData(Outputchar[num]);
-		printans(a);
-	}else if(num == 18){
+	if(num == 18){
 		clear();
 	}
-	else{
+	else if(num==17){
+		LcdWriteData(Outputchar[num]);
+		printans(a);
+	}
+	else if((num !=15) && (num !=16)){  //²»Îª) , .
 		LcdWriteData(Outputchar[num]);
 	}
 }
